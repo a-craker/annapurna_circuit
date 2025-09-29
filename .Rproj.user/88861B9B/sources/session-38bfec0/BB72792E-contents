@@ -1,0 +1,161 @@
+library(sf)
+library(purrr)
+library(geosphere)
+library(tidyverse)
+
+
+#' Process a folder of GPX files for plotting
+#'
+#' @param path Folder that contains *.gpx files
+#' @return tibble with: id, file, lon, lat, ele, time, dist_to_prev (km), cumdist (km)
+process_data <- function(path) {
+  # files <- sort(list.files(path, pattern = "\\.gpx$", full.names = TRUE))
+  files <- list.files(path, full.names = TRUE)
+  if (length(files) == 0) stop("No .gpx files found in: ", path)
+  
+  out <- purrr::map2_dfr(files, seq_along(files), function(f, i) {
+    # read track points
+    pts <- tryCatch(
+      sf::st_read(f, layer = "track_points", quiet = TRUE),
+      error = function(e) NULL
+    )
+    if (is.null(pts) || nrow(pts) < 2) return(NULL)
+    
+    # extract coords
+    coords <- sf::st_coordinates(pts)
+    lon <- coords[, "X"]
+    lat <- coords[, "Y"]
+    
+    # elevation (if present in GPX)
+    ele <- if ("ele" %in% names(pts)) pts$ele else rep(NA_real_, nrow(pts))
+    
+    # time (if present)
+    time <- if ("time" %in% names(pts)) {
+      as.POSIXct(pts$time, tz = "UTC")
+    } else {
+      rep(as.POSIXct(NA), nrow(pts))
+    }
+    
+    # distances (km)
+    d_m <- geosphere::distHaversine(
+      cbind(dplyr::lag(lon, default = lon[1]),
+            dplyr::lag(lat, default = lat[1])),
+      cbind(lon, lat)
+    )
+    dist_to_prev <- c(0, as.numeric(d_m[-1])) / 1000
+    cumdist <- cumsum(dist_to_prev)
+    
+    tibble::tibble(
+      id = i,
+      file = basename(f),
+      lon = lon, lat = lat, ele = ele, time = time,
+      dist_to_prev = dist_to_prev, cumdist = cumdist
+    )
+  })
+  
+  out
+}
+
+daily_routes <- process_data("data/daily_routes/")
+
+annapurna_circuit <- process_data("data/")
+
+# ELEVATION FACETS -------------------------------------------------------------------------
+
+plot_elevations <- function(data, scale_free_y = FALSE) {
+  # Compute total distance for each activity
+  dist <- data %>%
+    dplyr::group_by(id) %>%
+    dplyr::summarise(dist = max(cumdist))
+  
+  # Normalise distance
+  data <- data %>%
+    dplyr::left_join(dist, by = "id") %>%
+    dplyr::mutate(dist_scaled = cumdist / dist) %>%
+    dplyr::arrange(id, cumdist)
+  
+  # Create plot
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_line(ggplot2::aes(dist_scaled, ele, group = id), data, alpha = 0.75) +
+    ggplot2::facet_wrap(~id, scales = ifelse(scale_free_y, "free_y", "fixed")) +
+    ggplot2::theme_void() +
+    ggplot2::theme(panel.spacing = ggplot2::unit(0, "lines"),
+                   strip.background = ggplot2::element_blank(),
+                   strip.text = ggplot2::element_blank(),
+                   plot.margin = ggplot2::unit(rep(1, 4), "cm"))
+  p
+}
+
+daily_routes_elevation <- plot_elevations(daily_routes)
+
+annapurna_elevation <- plot_elevations(annapurna_circuit)
+
+
+# ROUTES ------------------------------------------------------------------
+
+plot_facets <- function(data, labels = FALSE, scales = "free", color = FALSE) {
+  
+  # Constants
+  possible_values_scales<- c("free", "fixed")
+  
+  # Check if the scales argument is correct
+  if (!(scales %in% possible_values_scales)) {
+    stop("This argument value for `scales` is not available! Use 'free' or 'fixed' instead!")
+  }
+  
+  # Check if the data is joined with activities.
+  if (color) {
+    if (sum(colnames(data) == "Activity.Type") == 0) {
+      stop("The data frame does not contain 'Activity.Type' column. Load activities with process_activities function and run join_data_activities function first!")
+    }
+  }
+  
+  # Summarise data
+  summary <- data %>%
+    dplyr::group_by(id) %>%
+    dplyr::summarise(lon = mean(range(lon)),
+                     lat = mean(range(lat)),
+                     distance = sprintf("%.1f", max(cumdist)))
+  
+  # Decide if tracks will all be scaled to similar size ("free") or if
+  # track sizes reflect absolute distance in each dimension ("fixed")
+  if (scales == "fixed") {
+    data <- data %>%
+      dplyr::group_by(id) %>% # for each track,
+      dplyr::mutate(lon = lon - mean(lon), # centre data on zero so facets can
+                    lat = lat - mean(lat)) # be plotted on same distance scale
+  } else {
+    scales = "free" # default, in case a non-valid option was specified
+  }
+  
+  # Decide if plot is colored by activity type or not and create a plot
+  if (color) {
+    p <- ggplot2::ggplot() + ggplot2::geom_path(ggplot2::aes(lon, lat, group = id, color = Activity.Type), data, linewidth = 0.35, lineend = "round", alpha = 0.5) + ggplot2::scale_color_brewer(palette = "Dark2", name = NULL) # color by activity type
+  } else {
+    p <- ggplot2::ggplot() + ggplot2::geom_path(ggplot2::aes(lon, lat, group = id), data, linewidth = 0.35, lineend = "round")
+  }
+  
+  p <- p + ggplot2::facet_wrap(~id, scales = scales) + ggplot2::theme_void() +
+    ggplot2::theme(panel.spacing = ggplot2::unit(0, "lines"),
+                   strip.background = ggplot2::element_blank(), strip.text = ggplot2::element_blank(),
+                   plot.margin = ggplot2::unit(rep(1, 4), "cm"),
+                   legend.position = "bottom") # place a legend on the bottom of a plot
+  
+  if (scales == "fixed") {
+    p <- p + ggplot2::coord_fixed() # make aspect ratio == 1
+  }
+  
+  # Add labels
+  if(labels) {
+    p <- p +
+      ggplot2::geom_text(ggplot2::aes(lon, lat, label = distance), data = summary,
+                         alpha = 0.25, size = 3)
+  }
+  
+  # Return plot
+  p
+}
+
+daily_routes_nav <- plot_facets(daily_routes)
+
+plot_facets(annapurna_circuit)

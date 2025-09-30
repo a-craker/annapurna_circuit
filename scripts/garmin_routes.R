@@ -31,29 +31,9 @@ iwalk(days_list, ~ write_csv(.x, file.path("data/garmin/", paste0(.y, ".csv"))))
 # SPATIAL -----------------------------------------------------------------
 
 
-# ---- 3) Build a LINESTRING per day and save ----
-# (Pauses simply mean no points; the line connects recorded points in order.)
-line_list <- map2(day_labels, day_keys, function(lbl, d){
-  df <- filter(rec_all, day_local == d)
-  if (nrow(df) < 2) return(NULL)  # need ≥2 points
-  pts <- st_as_sf(df, coords = c("lon","lat"), crs = 4326, remove = FALSE)
-  ln  <- pts %>% arrange(timestamp) %>% summarise(do_union = FALSE)
-  ln$day_label <- lbl
-  ln$day_local <- d
-  ln
-})
-line_list <- compact(line_list)
-day_lines <- do.call(rbind, line_list)  # sf rbind
-
-# save one GeoPackage per day (layer = dayXX)
-walk(day_labels, function(lbl){
-  g <- day_lines[day_lines$day_label == lbl, ]
-  if (nrow(g) == 0) return(invisible(NULL))
-  gpkg <- file.path(data_dir, paste0(lbl, ".gpkg"))
-  st_write(g, dsn = gpkg, layer = lbl, delete_dsn = TRUE, quiet = TRUE)
-})
 
 # ---- 4) Daily stats table + save ----
+
 day_stats <- rec_all %>%
   group_by(day_local) %>%
   summarise(

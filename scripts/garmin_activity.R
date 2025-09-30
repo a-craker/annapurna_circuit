@@ -23,34 +23,24 @@ tz <- "Asia/Kathmandu"
 
 tz_local <- "Asia/Kathmandu"
 
-annapurna_circuit <- rec  %>% 
-  arrange(timestamp) %>% 
-  slice(-(1:7)) %>% 
+annapurna_circuit <- rec %>%
+  arrange(timestamp) %>%
+  slice(-(1:7)) %>%
   mutate(
-    # local time for day splits
     timestamp = with_tz(timestamp, tzone = tz),
-    
-    # clean GPS placeholders: 180/180 often means "no fix"
-    lat = na_if(position_lat, 180.),
-    lon = na_if(position_long, 180.),
-    
-    # keep FIT-provided metrics
-    dist_m = distance,                 
-    spd_ms = enhanced_speed,           
-    altitude = enhanced_altitude         
-  ) %>% 
-  # light helpers
+    lat = if_else(round(position_lat,  1) %in% c(180, -180), NA_real_, position_lat),
+    lon = if_else(round(position_long, 1) %in% c(180, -180), NA_real_, position_long),
+    dist_m   = distance,
+    spd_ms   = enhanced_speed,
+    altitude = enhanced_altitude
+  ) %>%
+  filter(!is.na(lat), !is.na(lon)) %>%  # remove NA coords
   mutate(
-    # seconds between consecutive records
-    dt_s   = c(0, as.numeric(diff(timestamp), units = "secs")),
-    # per-step distance increment
-    d_m    = c(0, diff(dist_m)),
-    # movement flag: speed > 0.5 m/s OR cadence present
-    moving = (spd_ms > 0.5) | (coalesce(cadence + fractional_cadence, 0) > 0),
-    # optional: gentle alt smoothing for later gain/loss
+    dt_s        = c(0, as.numeric(diff(timestamp), units = "secs")),
+    d_m         = c(0, diff(dist_m)),
+    moving      = (spd_ms > 0.5) | (coalesce(cadence + fractional_cadence, 0) > 0),
     elev_smooth = rollapply(altitude, 11, median, fill = "extend", align = "center"),
-    # creating a day key
-    day_local = as_date(timestamp, tz = tz)
+    day_local   = as_date(timestamp, tz = tz)
   )
 
 write_csv(annapurna_circuit, "data/garmin/annapurna_circuit.csv")

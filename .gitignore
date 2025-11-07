@@ -1,9 +1,10 @@
-.Rproj.user
+:proj.user
 .Rhistory
 .RData
 .Ruserdata
 .Renviron
 
-output/
-data/
-plots/
+output/*
+data/*
+plots/*
+

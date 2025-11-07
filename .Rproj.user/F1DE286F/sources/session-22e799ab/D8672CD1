@@ -1,0 +1,26 @@
+{
+    "id": "D8672CD1",
+    "path": "~/projects/annapurna_circuit/scripts/data_prep/03_garmin_geojson.R",
+    "project_path": "scripts/data_prep/03_garmin_geojson.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1759324759600.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "61,39",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1760952163,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1760952163110,
+    "read_only": false,
+    "read_only_alternatives": []
+}

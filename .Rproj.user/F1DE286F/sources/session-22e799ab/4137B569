@@ -1,0 +1,26 @@
+{
+    "id": "4137B569",
+    "path": "~/projects/annapurna_circuit/scripts/plots/daily_facets.R",
+    "project_path": "scripts/plots/daily_facets.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1759341369523.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "323,98",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1760279813,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1760279813060,
+    "read_only": false,
+    "read_only_alternatives": []
+}

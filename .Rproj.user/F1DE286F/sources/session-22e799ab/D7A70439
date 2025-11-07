@@ -1,0 +1,28 @@
+{
+    "id": "D7A70439",
+    "path": "~/projects/annapurna_circuit/scripts/plots/elevation.R",
+    "project_path": "scripts/plots/elevation.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1760279890739.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "10,57",
+        "scrollLine": "0",
+        "docOutlineVisible": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1762324972,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1762324972933,
+    "read_only": false,
+    "read_only_alternatives": []
+}

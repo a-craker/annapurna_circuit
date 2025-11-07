@@ -150,6 +150,31 @@ ggsave(
   width = 6, height = 3, dpi = 300
 )
   
-    
 
+# AVERAGE TIME PER DAY ----------------------------------------------------
+
+circuit %>%
+  mutate(day = coalesce(day_local, as_date(timestamp_fixed), as_date(timestamp))) %>%
+  group_by(day) %>%
+  summarise(
+    start = min(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
+    end   = max(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
+    span_s = as.numeric(difftime(end, start, units = "secs")),
+    span   = seconds_to_period(span_s),
+    .groups = "drop"
+  )
+
+circuit %>%
+  mutate(day = coalesce(day_local, as_date(timestamp_fixed), as_date(timestamp))) %>%
+  group_by(day) %>%
+  summarise(
+    start  = min(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
+    end    = max(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
+    span_s = as.numeric(difftime(end, start, units = "secs")),
+    .groups = "drop"
+  ) %>%
+  summarise(
+    avg_span_s = mean(span_s, na.rm = TRUE),
+    avg_span   = seconds_to_period(avg_span_s)
+  )
 

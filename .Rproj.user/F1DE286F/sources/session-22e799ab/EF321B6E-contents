@@ -4,8 +4,9 @@ library(tidyverse)
 circuit <- read_csv("data/garmin/annapurna_circuit.csv")
 
 daily_stats <- circuit %>%
+  filter(moving == TRUE) %>% 
   arrange(day_local, timestamp) %>%
-  # group_by(day_local) %>%
+  group_by(day_local) %>%
   # Row-wise deltas with sensible fallbacks
   mutate(
     # altitude diff from smoothed series; zero out obvious GPS spikes (>30 m between points)
@@ -54,11 +55,17 @@ daily_stats <- circuit %>%
     pct_moving        = moving_time_s / elapsed_time_s,
     vam_m_per_h       = if_else(moving_time_s > 0, elev_gain_m * 3600 / moving_time_s, NA_real_)
   ) %>%
-  ungroup()
+  ungroup() %>% 
+  select(day_local, distance_m, elev_gain_m, elev_loss_m, avg_alt_m, moving_time_s)
 
 
 daily_stats %>% 
-  summarise(elev = (elev_gain_m))
+  mutate(
+    moving_period = seconds_to_period(moving_time_s),
+    hrs  = hour(moving_period) + 24 * day(moving_period),
+    mins = minute(moving_period),
+    moving_hm = sprintf("%d:%02d", hrs, mins)
+  )
 
 
 # speed and gradient -------------------------------------------------------------------------
@@ -154,27 +161,13 @@ ggsave(
 # AVERAGE TIME PER DAY ----------------------------------------------------
 
 circuit %>%
-  mutate(day = coalesce(day_local, as_date(timestamp_fixed), as_date(timestamp))) %>%
+  mutate(day = coalesce(day_local, as_date(timestamp), as_date(timestamp))) %>%
   group_by(day) %>%
   summarise(
-    start = min(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
-    end   = max(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
+    start = min(coalesce(timestamp, timestamp), na.rm = TRUE),
+    end   = max(coalesce(timestamp, timestamp), na.rm = TRUE),
     span_s = as.numeric(difftime(end, start, units = "secs")),
     span   = seconds_to_period(span_s),
     .groups = "drop"
-  )
-
-circuit %>%
-  mutate(day = coalesce(day_local, as_date(timestamp_fixed), as_date(timestamp))) %>%
-  group_by(day) %>%
-  summarise(
-    start  = min(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
-    end    = max(coalesce(timestamp_fixed, timestamp), na.rm = TRUE),
-    span_s = as.numeric(difftime(end, start, units = "secs")),
-    .groups = "drop"
-  ) %>%
-  summarise(
-    avg_span_s = mean(span_s, na.rm = TRUE),
-    avg_span   = seconds_to_period(avg_span_s)
   )
 

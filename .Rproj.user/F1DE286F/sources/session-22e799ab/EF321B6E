@@ -3,7 +3,7 @@
     "path": "~/projects/annapurna_circuit/scripts/stats/trek_stats.R",
     "project_path": "scripts/stats/trek_stats.R",
     "type": "r_source",
-    "hash": "2455662768",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1759324744293.0,
@@ -13,8 +13,8 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "148,2",
-        "scrollLine": "134"
+        "cursorPosition": "126,4",
+        "scrollLine": "0"
     },
     "folds": "",
     "lastKnownWriteTime": 1762954049,
